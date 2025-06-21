@@ -1,122 +1,145 @@
-// src/pages/Stocktake.jsx
-import React, { useEffect, useState } from 'react'
-import { supabase } from '../supabaseClient.js'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-function Stocktake() {
-  const [products, setProducts] = useState([])
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [preparedBy, setPreparedBy] = useState('')
+const mockData = [
+  {
+    category: "Spirits",
+    products: [
+      { name: "Vodka", cartons: 1, singles: 4 },
+      { name: "Gin", cartons: 0, singles: 10 },
+    ],
+  },
+  {
+    category: "Beers",
+    products: [
+      { name: "Lager", cartons: 2, singles: 6 },
+      { name: "Stout", cartons: 1, singles: 2 },
+    ],
+  },
+];
 
-  useEffect(() => {
-    fetchProducts()
-  }, [])
+export default function Stocktake() {
+  const [data, setData] = useState(mockData);
+  const [stocktakeDate, setStocktakeDate] = useState("");
 
-  const fetchProducts = async () => {
-    const { data, error } = await supabase.from('products').select('*')
-    if (error) console.error('Error loading products:', error)
-    else {
-      const enriched = data.map(p => ({
-        ...p,
-        cldrm_carton: 0,
-        cldrm_single: 0,
-        bar_single: 0,
-      }))
-      setProducts(enriched)
-    }
-  }
+  const updateQty = (catIndex, prodIndex, field, value) => {
+    const updated = [...data];
+    updated[catIndex].products[prodIndex][field] = Number(value);
+    setData(updated);
+  };
 
-  const handleChange = (index, field, value) => {
-    const updated = [...products]
-    updated[index][field] = parseInt(value) || 0
-    setProducts(updated)
-  }
+  const getTotal = (product) => {
+    return product.cartons * 24 + product.singles;
+  };
 
-  const calculateTotal = (p) => {
-    const cartons = parseInt(p.cldrm_carton) || 0
-    const singles = parseInt(p.cldrm_single) || 0
-    const bar = parseInt(p.bar_single) || 0
-    const units = parseInt(p.units_per_carton) || 0
-    return (cartons * units) + singles + bar
-  }
+  const generatePDF = () => {
+    const doc = new jsPDF();
 
-  const saveFullStocktake = async () => {
-    let discrepancyCount = 0
-    const doc = new jsPDF()
-    autoTable(doc, {
-      head: [['Name', 'Cartons', 'Singles', 'Bar', 'Total', 'Prev Qty', 'Variance']],
-      body: products.map(p => {
-        const total = calculateTotal(p)
-        const variance = total - (p.quantity_available || 0)
-        if (variance !== 0) discrepancyCount++
-        return [p.name, p.cldrm_carton, p.cldrm_single, p.bar_single, total, p.quantity_available ?? 0, variance]
-      })
-    })
-    const filename = `Stocktake-${date}.pdf`
-    doc.save(filename)
+    doc.setFontSize(18);
+    doc.text("Redlands Boat Club", 14, 20);
+    doc.setFontSize(14);
+    doc.text(`Stocktake Report – ${stocktakeDate}`, 14, 30);
 
-    // Update all product quantities
-    for (const p of products) {
-      const newQty = calculateTotal(p)
-      await supabase.from('products').update({ quantity_available: newQty }).eq('id', p.id)
-    }
+    data.forEach((cat, i) => {
+      autoTable(doc, {
+        startY: doc.autoTable.previous.finalY + (i === 0 ? 10 : 20),
+        head: [["Product", "Cartons", "Singles", "Total"]],
+        body: cat.products.map((prod) => [
+          prod.name,
+          prod.cartons,
+          prod.singles,
+          getTotal(prod),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [10, 10, 35] },
+        margin: { top: 10, left: 14, right: 14 },
+        didDrawPage: (data) => {
+          if (data.pageCount === 1) {
+            doc.text(cat.category, 14, data.settings.startY - 6);
+          } else {
+            doc.setFontSize(10);
+            doc.text(cat.category, 14, 10);
+          }
+        }
+      });
+    });
 
-    // Save metadata to stocktakes table
-    const { error } = await supabase.from('stocktakes').insert({
-      stocktake_date: date,
-      prepared_by: preparedBy,
-      total_discrepancies: discrepancyCount,
-      pdf_url: filename // Optional: save only filename if using local download
-    })
+    doc.setFontSize(10);
+    doc.text("CONFIDENTIAL – INTERNAL USE ONLY – REDLANDS BOAT CLUB", 14, doc.internal.pageSize.height - 10);
 
-    if (error) alert('Failed to log stocktake')
-    else alert('Stocktake saved and PDF downloaded.')
-  }
+    doc.save(`Stocktake_${stocktakeDate}.pdf`);
+  };
+
+  const handleSave = () => {
+    // TODO: Save to Supabase if needed
+    generatePDF();
+  };
 
   return (
-    <div>
-      <h1>📦 Stocktake</h1>
-      <label>
-        Date: <input type="date" value={date} onChange={e => setDate(e.target.value)} />
-      </label>
-      <label style={{ marginLeft: '1rem' }}>
-        Prepared by: <input value={preparedBy} onChange={e => setPreparedBy(e.target.value)} />
-      </label>
-      <table border="1" cellPadding="6" style={{ marginTop: '1rem', width: '100%' }}>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Cartons</th>
-            <th>Singles</th>
-            <th>Bar</th>
-            <th>Total</th>
-            <th>Current Qty</th>
-            <th>Variance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((p, i) => {
-            const total = calculateTotal(p)
-            const variance = total - (p.quantity_available || 0)
-            return (
-              <tr key={p.id}>
-                <td>{p.name}</td>
-                <td><input type="number" value={p.cldrm_carton} onChange={e => handleChange(i, 'cldrm_carton', e.target.value)} /></td>
-                <td><input type="number" value={p.cldrm_single} onChange={e => handleChange(i, 'cldrm_single', e.target.value)} /></td>
-                <td><input type="number" value={p.bar_single} onChange={e => handleChange(i, 'bar_single', e.target.value)} /></td>
-                <td>{total}</td>
-                <td>{p.quantity_available ?? '—'}</td>
-                <td style={{ color: variance !== 0 ? 'red' : 'black' }}>{variance}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div className="p-6 bg-gray-100 min-h-screen">
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow p-6">
+        <h1 className="text-2xl font-bold mb-4">Monthly Stocktake</h1>
 
-      <button onClick={saveFullStocktake} style={{ marginTop: '1rem', padding: '8px 16px' }}>📥 Save Full Report</button>
+        <label className="block mb-4">
+          <span className="font-semibold">Stocktake Date:</span>
+          <input
+            type="date"
+            value={stocktakeDate}
+            onChange={(e) => setStocktakeDate(e.target.value)}
+            className="mt-1 p-2 border rounded w-full"
+          />
+        </label>
+
+        {data.map((cat, catIndex) => (
+          <div key={cat.category} className="mb-6">
+            <h2 className="text-xl font-semibold mb-2">{cat.category}</h2>
+            <table className="w-full text-left border">
+              <thead>
+                <tr className="bg-gray-200">
+                  <th className="p-2">Product</th>
+                  <th className="p-2">Cartons</th>
+                  <th className="p-2">Singles</th>
+                  <th className="p-2">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cat.products.map((prod, prodIndex) => (
+                  <tr key={prod.name} className="border-t">
+                    <td className="p-2 font-medium">{prod.name}</td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        className="w-20 border rounded p-1"
+                        value={prod.cartons}
+                        onChange={(e) =>
+                          updateQty(catIndex, prodIndex, "cartons", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td className="p-2">
+                      <input
+                        type="number"
+                        className="w-20 border rounded p-1"
+                        value={prod.singles}
+                        onChange={(e) =>
+                          updateQty(catIndex, prodIndex, "singles", e.target.value)
+                        }
+                      />
+                    </td>
+                    <td className="p-2">{getTotal(prod)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+
+        <Button onClick={handleSave} className="mt-4 w-full">
+          Save Full Report
+        </Button>
+      </div>
     </div>
-  )
+  );
 }
-
-export default Stocktake;
