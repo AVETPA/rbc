@@ -1,6 +1,6 @@
 // src/pages/Stocktake.jsx
 import React, { useEffect, useState } from 'react'
-import { supabase } from '../supabaseClient'
+import { supabase } from '../supabaseClient.js'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
