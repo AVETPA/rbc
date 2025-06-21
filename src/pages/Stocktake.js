@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
