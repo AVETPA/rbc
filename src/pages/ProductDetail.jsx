@@ -135,7 +135,7 @@ export default function ProductDetail() {
   };
 
   if (!showModal || !productId) return null;
-
+console.log("productId:", productId);
   // The rendering and form layout remains unchanged...
 
   return (
