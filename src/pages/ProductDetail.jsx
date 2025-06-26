@@ -79,6 +79,11 @@ export default function ProductDetail() {
   };
 
   if (!showModal || !productId) return null;
+if (error) {
+  console.error('Update error:', error.message);
+} else {
+  console.log('Update success');
+}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 overflow-auto">
