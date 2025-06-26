@@ -135,13 +135,32 @@ export default function ProductDetail() {
   };
 
   if (!showModal || !productId) return null;
-console.log("productId:", productId);
-  // The rendering and form layout remains unchanged...
 
+  // The rendering and form layout remains unchanged...
+console.log("productId:", productId);
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 overflow-auto">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-5xl">
-        {/* ... unchanged modal rendering ... */}
+     <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-5xl">
+  <h2 className="text-xl font-bold mb-4">Edit Product</h2>
+  {loading ? (
+    <p>Loading...</p>
+  ) : (
+    <div>
+      <p className="mb-2"><strong>Name:</strong> {product?.name}</p>
+      <p><strong>Category:</strong> {product?.category}</p>
+      <p><strong>Variations:</strong> {variations.length}</p>
+      <p><strong>Inventory records:</strong> {inventory.length}</p>
+    </div>
+  )}
+
+  <div className="flex justify-between mt-6">
+    <Button onClick={() => setShowModal(false)} variant="outline">
+      Cancel
+    </Button>
+    <Button onClick={handleSave}>Save All Changes</Button>
+  </div>
+</div>
+
         <div className="flex justify-between mt-6">
           <Button onClick={() => setShowModal(false)} variant="outline">
             Cancel
