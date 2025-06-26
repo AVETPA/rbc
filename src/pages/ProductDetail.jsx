@@ -27,13 +27,6 @@ export default function ProductDetail() {
         supabase.from("products").select("subcategory")
       ]);
 
-      console.log("✅ productRes:", productRes);
-      console.log("✅ variationsRes:", variationsRes);
-      console.log("✅ inventoryRes:", inventoryRes);
-const { error } = await supabase
-  .from('products')
-  .update({ cost_price: newCostPrice }) // Add other fields as needed
-  .eq('id', productId);
       if (!productRes?.data) {
         console.warn("⚠️ Product not found. productId:", productId);
       }
@@ -77,16 +70,26 @@ const { error } = await supabase
   };
 
   const handleSave = async () => {
-    // Save logic (unchanged)
-    alert("Save logic called");
+    if (!product) return;
+
+    const { id, ...updateFields } = product;
+
+    const { error } = await supabase
+      .from("products")
+      .update(updateFields)
+      .eq("id", id);
+
+    if (error) {
+      console.error("❌ Failed to update product:", error.message);
+      alert("Error saving product. Check console for details.");
+    } else {
+      alert("✅ Product saved successfully.");
+    }
+
+    // TODO: Save variations if needed
   };
 
   if (!showModal || !productId) return null;
-if (error) {
-  console.error('Update error:', error.message);
-} else {
-  console.log('Update success');
-}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 overflow-auto">
@@ -97,7 +100,10 @@ if (error) {
         ) : product ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {["name", "internal_code", "brand", "pack_type", "unit_type", "size", "ml_per_unit", "units_per_carton", "cost_price"].map((field) => (
+              {[
+                "name", "internal_code", "brand", "pack_type", "unit_type",
+                "size", "ml_per_unit", "units_per_carton", "cost_price"
+              ].map((field) => (
                 <label key={field} className="block">
                   <span className="block font-semibold mb-1">{field.replace(/_/g, " ")}:</span>
                   <input
