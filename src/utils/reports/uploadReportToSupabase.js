@@ -4,20 +4,26 @@ import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Uploads a PDF report to Supabase Storage and saves metadata to 'reports' table
- * @param {File} file - The PDF file to upload
+ * @param {File|Blob} file - The PDF file to upload (must be a Blob or File)
  * @param {string} monthYear - e.g. 'June 2025'
  * @param {string} reportType - e.g. 'Stocktake Report', 'Profit & Loss Statement', 'Bar Management Report'
  * @returns {Promise<string>} - Public URL to access the uploaded file
  */
 export async function uploadReportToSupabase(file, monthYear, reportType) {
-  const fileExt = file.name.split('.').pop();
+  if (!file || !(file instanceof Blob)) {
+    throw new Error('Invalid file: expected a File or Blob object.');
+  }
+
+  // Use a default name if not provided (for Blob objects)
+  const originalName = file.name || `${reportType.toLowerCase().replace(/\s+/g, '-')}.pdf`;
+  const fileExt = originalName.split('.').pop() || 'pdf';
   const fileName = `${uuidv4()}.${fileExt}`;
   const filePath = `${monthYear.replace(/\s+/g, '_')}/${fileName}`;
 
   // Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage
     .from('reports')
-    .upload(filePath, file);
+    .upload(filePath, file, { contentType: 'application/pdf' });
 
   if (uploadError) {
     console.error('Upload error:', uploadError);
@@ -25,7 +31,12 @@ export async function uploadReportToSupabase(file, monthYear, reportType) {
   }
 
   // Get public URL
-  const { data } = supabase.storage.from('reports').getPublicUrl(filePath);
+  const { data, error: urlError } = supabase.storage.from('reports').getPublicUrl(filePath);
+  if (urlError || !data?.publicUrl) {
+    console.error('URL generation error:', urlError);
+    throw new Error('Failed to generate public URL for uploaded file.');
+  }
+
   const publicUrl = data.publicUrl;
 
   // Insert metadata into 'reports' table
