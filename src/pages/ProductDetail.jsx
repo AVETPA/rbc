@@ -30,7 +30,10 @@ export default function ProductDetail() {
       console.log("✅ productRes:", productRes);
       console.log("✅ variationsRes:", variationsRes);
       console.log("✅ inventoryRes:", inventoryRes);
-
+const { error } = await supabase
+  .from('products')
+  .update({ cost_price: newCostPrice }) // Add other fields as needed
+  .eq('id', productId);
       if (!productRes?.data) {
         console.warn("⚠️ Product not found. productId:", productId);
       }
