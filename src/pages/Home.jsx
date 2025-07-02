@@ -1,5 +1,5 @@
 import React from "react";
-import { Button } from "../components/ui/button.jsx";
+import { Button } from "../components/ui/Button.jsx";
 
 export default function Home() {
   return (
