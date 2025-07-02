@@ -190,3 +190,4 @@ export default function ProductDetailModal({ productId, productName, open, onClo
     </div>
   </div>
 );
+}

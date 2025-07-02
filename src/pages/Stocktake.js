@@ -189,9 +189,10 @@ export default function Stocktake() {
           Grand Total Value: ${grandTotalValue.toFixed(2)}
         </div>
 
-        <Button onClick={handleSave} className="mt-6 w-full">
-          Save Full Report
-        </Button>
+       <button onClick={handleSave} className="bg-blue-600 text-white px-4 py-2 rounded">
+  Save
+</button>
+
       </div>
     </div>
   );
