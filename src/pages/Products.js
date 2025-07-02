@@ -17,11 +17,11 @@ export default function Products() {
           cost_price,
           category_id,
           subcategory_id,
-          categories (
+          category:category_id (
             id,
             name
           ),
-          subcategories (
+          subcategory:subcategory_id (
             id,
             name
           )
@@ -36,8 +36,8 @@ export default function Products() {
           name: p.name,
           size: p.size,
           cost_price: p.cost_price,
-          category: p.categories?.name || "—",
-          subcategory: p.subcategories?.name || "—"
+          category: p.category?.name || "—",
+          subcategory: p.subcategory?.name || "—"
         }));
         setProducts(flattened);
       }
@@ -73,7 +73,9 @@ export default function Products() {
                 <td className="py-2 px-4">{product.category}</td>
                 <td className="py-2 px-4">{product.subcategory}</td>
                 <td className="py-2 px-4">{product.size}</td>
-                <td className="py-2 px-4">${product.cost_price?.toFixed(2) || "0.00"}</td>
+                <td className="py-2 px-4">
+                  ${product.cost_price?.toFixed(2) || "0.00"}
+                </td>
                 <td className="py-2 px-4">
                   <Link
                     to={`/product-detail?id=${product.id}`}
