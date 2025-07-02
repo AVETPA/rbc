@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
-import Dialog from "../components/ui/DialogBox.jsx";
-import Button from "../components/ui/button.jsx";
-import  Switch  from "../components/ui/Switch.jsx";
+import { supabase } from "../supabaseClient.js";
+
 
 
 export default function ProductDetailModal({ productId, productName, open, onClose }) {
