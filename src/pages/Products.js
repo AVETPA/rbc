@@ -1,4 +1,3 @@
-// Products.jsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient.js";
 import { Link } from "react-router-dom";
@@ -11,13 +10,38 @@ export default function Products() {
     const fetchProducts = async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category, subcategory, size, cost_price")
-        .order("category")
-        .order("subcategory")
+        .select(`
+          id,
+          name,
+          size,
+          cost_price,
+          category_id,
+          subcategory_id,
+          categories (
+            id,
+            name
+          ),
+          subcategories (
+            id,
+            name
+          )
+        `)
         .order("name");
 
-      if (error) console.error("Error fetching products:", error);
-      else setProducts(data);
+      if (error) {
+        console.error("❌ Error fetching products:", error);
+      } else {
+        const flattened = data.map((p) => ({
+          id: p.id,
+          name: p.name,
+          size: p.size,
+          cost_price: p.cost_price,
+          category: p.categories?.name || "—",
+          subcategory: p.subcategories?.name || "—"
+        }));
+        setProducts(flattened);
+      }
+
       setLoading(false);
     };
 
@@ -51,8 +75,12 @@ export default function Products() {
                 <td className="py-2 px-4">{product.size}</td>
                 <td className="py-2 px-4">${product.cost_price?.toFixed(2) || "0.00"}</td>
                 <td className="py-2 px-4">
-                  <Link to={`/product-detail?id=${product.id}`}>View / Edit</Link>
-
+                  <Link
+                    to={`/product-detail?id=${product.id}`}
+                    className="text-blue-600 underline"
+                  >
+                    View / Edit
+                  </Link>
                 </td>
               </tr>
             ))}

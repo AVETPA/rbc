@@ -1,4 +1,4 @@
-// App.js
+// src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.js';
@@ -11,6 +11,8 @@ import Reports from './pages/Reports.js';
 import Stocktake from './pages/Stocktake.js';
 import Downloads from './pages/Downloads.js';
 import SyncSquare from './pages/SyncSquare.js';
+import Login from './Login.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx';
 
 function App() {
   return (
@@ -27,16 +29,88 @@ function App() {
         </nav>
 
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/product-detail" element={<ProductDetail />} />
-          <Route path="/purchases" element={<Purchases />} />
-          <Route path="/sales-report" element={<SalesReport />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/stocktake" element={<Stocktake />} />
-          <Route path="/downloads" element={<Downloads />} />
-          <Route path="/sync" element={<SyncSquare />} />
+          <Route path="/login" element={<Login />} />
+
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inventory"
+            element={
+              <ProtectedRoute>
+                <Inventory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/products"
+            element={
+              <ProtectedRoute>
+                <Products />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/product-detail"
+            element={
+              <ProtectedRoute>
+                <ProductDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/purchases"
+            element={
+              <ProtectedRoute>
+                <Purchases />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sales-report"
+            element={
+              <ProtectedRoute>
+                <SalesReport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute>
+                <Reports />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stocktake"
+            element={
+              <ProtectedRoute>
+                <Stocktake />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/downloads"
+            element={
+              <ProtectedRoute>
+                <Downloads />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sync"
+            element={
+              <ProtectedRoute>
+                <SyncSquare />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>

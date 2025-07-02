@@ -1,4 +1,3 @@
-// Stocktake.jsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient.js";
 import { Button } from "../components/ui/button.jsx";
@@ -13,13 +12,30 @@ export default function Stocktake() {
     const fetchProducts = async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category, subcategory, cartons, singles, bar, size, cost_price")
-        .order("category")
-        .order("subcategory")
+        .select(`
+          id,
+          name,
+          cartons,
+          singles,
+          bar,
+          size,
+          cost_price,
+          categories ( name ),
+          subcategories ( name )
+        `)
         .order("name");
 
-      if (error) console.error("Error fetching products:", error);
-      else setProducts(data);
+      if (error) {
+        console.error("Error fetching products:", error);
+      } else {
+        // Flatten the joined category/subcategory names
+        const flat = data.map((p) => ({
+          ...p,
+          category: p.categories?.name || "Uncategorised",
+          subcategory: p.subcategories?.name || "",
+        }));
+        setProducts(flat);
+      }
     };
 
     fetchProducts();
@@ -27,15 +43,17 @@ export default function Stocktake() {
 
   const updateQty = (productId, field, value) => {
     setProducts((prev) =>
-      prev.map((p) =>
-        p.id === productId ? { ...p, [field]: Number(value) } : p
-      )
+      prev.map((p) => (p.id === productId ? { ...p, [field]: Number(value) } : p))
     );
   };
 
   const getTotal = (product) => {
     const size = product.size || 24;
     return (product.cartons || 0) * size + (product.singles || 0) + (product.bar || 0);
+  };
+
+  const getValue = (product) => {
+    return ((product.cost_price || 0) * getTotal(product)).toFixed(2);
   };
 
   const handleSave = async () => {
@@ -52,16 +70,16 @@ export default function Stocktake() {
       coolroom_singles: p.singles || 0,
       bar_fridge: p.bar || 0,
       total_quantity: getTotal(p),
-      value: 0 // Placeholder for product value
+      value: getValue(p),
     }));
 
-    const totalValue = stockEntries.reduce((sum, p) => sum + p.value, 0);
+    const totalValue = stockEntries.reduce((sum, p) => sum + parseFloat(p.value), 0);
 
     const reportUrl = await generateStocktakeReport(
       {
         stockEntries,
         totalValue,
-        notes: []
+        notes: [],
       },
       completedBy,
       new Date(stocktakeDate).toLocaleString("en-AU", { month: "long", year: "numeric" })
@@ -76,6 +94,11 @@ export default function Stocktake() {
     acc[key].push(p);
     return acc;
   }, {});
+
+  const grandTotalValue = products.reduce(
+    (sum, p) => sum + (p.cost_price || 0) * getTotal(p),
+    0
+  );
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -109,20 +132,21 @@ export default function Stocktake() {
             <table className="w-full table-fixed text-left border">
               <thead>
                 <tr className="bg-gray-200">
-                  <th className="w-1/3 p-2">Product</th>
-                  <th className="w-1/8 p-2">Carton Size</th>
-                  <th className="w-1/8 p-2">Coolroom Carton</th>
-                  <th className="w-1/8 p-2">Coolroom Single</th>
-                  <th className="w-1/8 p-2">Bar</th>
-                  <th className="w-1/8 p-2">Total</th>
+                  <th className="w-1/4 p-2">Product</th>
+                  <th className="w-1/12 p-2">Carton Size</th>
+                  <th className="w-1/12 p-2">Coolroom Carton</th>
+                  <th className="w-1/12 p-2">Coolroom Single</th>
+                  <th className="w-1/12 p-2">Bar</th>
+                  <th className="w-1/12 p-2">Total</th>
+                  <th className="w-1/12 p-2">Value ($)</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((prod) => (
                   <tr key={prod.id} className="border-t">
-                    <td className="w-1/3 p-2 font-medium">{prod.name}</td>
-                    <td className="w-1/8 p-2">{prod.size || 24}</td>
-                    <td className="w-1/8 p-2">
+                    <td className="p-2 font-medium">{prod.name}</td>
+                    <td className="p-2">{prod.size || 24}</td>
+                    <td className="p-2">
                       <input
                         type="number"
                         className="w-full border rounded p-1"
@@ -130,7 +154,7 @@ export default function Stocktake() {
                         onChange={(e) => updateQty(prod.id, "cartons", e.target.value)}
                       />
                     </td>
-                    <td className="w-1/8 p-2">
+                    <td className="p-2">
                       <input
                         type="number"
                         className="w-full border rounded p-1"
@@ -138,7 +162,7 @@ export default function Stocktake() {
                         onChange={(e) => updateQty(prod.id, "singles", e.target.value)}
                       />
                     </td>
-                    <td className="w-1/8 p-2">
+                    <td className="p-2">
                       <input
                         type="number"
                         className="w-full border rounded p-1"
@@ -146,15 +170,26 @@ export default function Stocktake() {
                         onChange={(e) => updateQty(prod.id, "bar", e.target.value)}
                       />
                     </td>
-                    <td className="w-1/8 p-2">{getTotal(prod)}</td>
+                    <td className="p-2">{getTotal(prod)}</td>
+                    <td className="p-2">{getValue(prod)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <div className="text-right mt-2 font-semibold">
+              Subtotal Value for {group}: $
+              {items.reduce((sum, prod) => {
+                return sum + (prod.cost_price || 0) * getTotal(prod);
+              }, 0).toFixed(2)}
+            </div>
           </div>
         ))}
 
-        <Button onClick={handleSave} className="mt-4 w-full">
+        <div className="text-right text-lg font-bold mt-8">
+          Grand Total Value: ${grandTotalValue.toFixed(2)}
+        </div>
+
+        <Button onClick={handleSave} className="mt-6 w-full">
           Save Full Report
         </Button>
       </div>
