@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import Dialog from "../components/ui/DialogBox.jsx";
-import Button from "../components/ui/Button.jsx";
+import Button from "../components/ui/button.jsx";
 import  Switch  from "../components/ui/Switch.jsx";
 
 

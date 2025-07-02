@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient.js";
-import { Button } from "../components/ui/Button.jsx";
+import { Button } from "../components/ui/button.jsx";
 import { generateStocktakeReport } from "../utils/reports/generateStocktakeReport.js";
 
 export default function Stocktake() {
