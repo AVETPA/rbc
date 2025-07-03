@@ -39,6 +39,7 @@ export default function Products() {
           category: p.category?.name || "—",
           subcategory: p.subcategory?.name || "—"
         }));
+        console.log("Raw product data:", data);
         setProducts(flattened);
       }
 
