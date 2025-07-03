@@ -9,25 +9,20 @@ export default function Products() {
   useEffect(() => {
     const fetchProducts = async () => {
       const { data, error } = await supabase
-        .from("products")
-        .select(`
-          id,
-          name,
-          size,
-          cost_price,
-          category_id,
-          subcategory_id,
-          category:category_id (
-            id,
-            name
-          ),
-          subcategory:subcategory_id (
-            id,
-            name
-          )
-        `)
-        .order("name");
+  .from("products")
+  .select(`
+    id,
+    name,
+    size,
+    cost_price,
+    category_id,
+    subcategory_id,
+    category:category_id ( name ),
+    subcategory:subcategory_id ( name )
+  `)
+  .order("name");
 
+   console.log("Raw product data:", data);
       if (error) {
         console.error("❌ Error fetching products:", error);
       } else {
@@ -39,7 +34,7 @@ export default function Products() {
           category: p.category?.name || "—",
           subcategory: p.subcategory?.name || "—"
         }));
-        console.log("Raw product data:", data);
+       
         setProducts(flattened);
       }
 
