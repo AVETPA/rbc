@@ -13,7 +13,7 @@ import Downloads from './pages/Downloads.js';
 import SyncSquare from './pages/SyncSquare.js';
 import Login from './Login.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
-import BarReportForm from './components/BarReportForm.jsx';
+import BarReportForm from './pages/BarReportForm.jsx';
 
 function App() {
   return (
