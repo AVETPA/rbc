@@ -1,5 +1,5 @@
 // BarReportForm.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Pie } from 'react-chartjs-2';
 import 'chart.js/auto';
 import { supabase } from "../supabaseClient.js";
