@@ -27,7 +27,11 @@ export default function BarReportForm() {
     setEvents(updated);
   };
 
-  const addEvent = () => setEvents([...events, initialEvent]);
+ const addEvent = () => {
+  const count = events.length + 1;
+  const newEvent = { event_type: `Event ${count}`, sales: '', cost: '' };
+  setEvents([...events, newEvent]);
+};
 
   const handleCategoryChange = (category, value) => {
     setCategorySales(prev => ({ ...prev, [category]: value }));
