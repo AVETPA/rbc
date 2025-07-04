@@ -13,6 +13,7 @@ import Downloads from './pages/Downloads.js';
 import SyncSquare from './pages/SyncSquare.js';
 import Login from './Login.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
+mport BarReportForm from './components/BarReportForm';
 
 function App() {
   return (
@@ -111,6 +112,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/bar-report" element={<BarReportForm />} />
         </Routes>
       </div>
     </Router>
