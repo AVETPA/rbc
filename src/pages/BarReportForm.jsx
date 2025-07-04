@@ -1,9 +1,13 @@
-// BarReportForm.jsx
+// BarReportForm.jsx (Final Version with Logo, Totals, and Percent Labels on Chart 2)
 import React, { useState, useRef } from 'react';
 import { Pie } from 'react-chartjs-2';
 import 'chart.js/auto';
-import { supabase } from "../supabaseClient.js";
+import { Chart as ChartJS, Tooltip, Legend, ArcElement } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { supabase } from '../supabaseClient.js';
 import jsPDF from 'jspdf';
+
+ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
 const initialEvent = { event_type: '', sales: '', cost: '' };
 const initialCategorySales = {
@@ -13,7 +17,7 @@ const initialCategorySales = {
   'Non-Alcoholic': ''
 };
 
-const RBC_LOGO_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAABtlBMVEX///+/NCwORoz5wDQAR5FcKynEMyrEwMAAQooAPYjGMyMA';
+const RBC_LOGO_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAABtlBMVEX///+/NCwORoz5wDQAR5FcKynEMyrEwMAAQooAPYjGMyMAP4kANIRFQnqOOlOIPF1UQXIANoUAOYb9yDXNzc0AMYP5+fm8Ki';
 
 export default function BarReportForm() {
   const [completedBy, setCompletedBy] = useState('');
@@ -41,9 +45,9 @@ export default function BarReportForm() {
     setCategorySales(prev => ({ ...prev, [category]: value }));
   };
 
-  const totalCategorySales = Object.values(categorySales).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
   const totalSales = events.reduce((sum, e) => sum + parseFloat(e.sales || 0), 0);
   const totalCost = events.reduce((sum, e) => sum + parseFloat(e.cost || 0), 0);
+  const totalCategorySales = Object.values(categorySales).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
 
   const pieEventData = {
     labels: events.map(e => e.event_type || 'Unnamed'),
@@ -72,11 +76,29 @@ export default function BarReportForm() {
     ]
   };
 
+  const pieCategoryOptions = {
+    plugins: {
+      datalabels: {
+        formatter: (value, context) => {
+          const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+          const percent = total ? ((value / total) * 100).toFixed(1) : 0;
+          return `${context.chart.data.labels[context.dataIndex]}\n${percent}%`;
+        },
+        color: '#000',
+        font: { weight: 'bold' }
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!stocktakeDate) {
+      alert("Please select a Stocktake Date.");
+      return;
+    }
+
     try {
       const reportMonth = stocktakeDate?.slice(0, 7);
-
       const { data: report, error } = await supabase
         .from('bar_reports')
         .insert({
@@ -176,8 +198,8 @@ export default function BarReportForm() {
   return (
     <form onSubmit={handleSubmit} className="p-4 space-y-6">
       <h2 className="text-xl font-bold">Bar Management Report</h2>
-      <input type="text" placeholder="Completed by" value={completedBy} onChange={e => setCompletedBy(e.target.value)} className="border p-2 w-full" />
-      <input type="date" value={stocktakeDate} onChange={e => setStocktakeDate(e.target.value)} className="border p-2 w-full" />
+      <input type="text" placeholder="Completed by" value={completedBy} onChange={e => setCompletedBy(e.target.value)} className="border p-2 w-full" required />
+      <input type="date" value={stocktakeDate} onChange={e => setStocktakeDate(e.target.value)} className="border p-2 w-full" required />
       <input type="number" placeholder="Stocktake Total ($)" value={stocktakeTotal} onChange={e => setStocktakeTotal(e.target.value)} className="border p-2 w-full" />
 
       <h3 className="font-bold">Event Entries</h3>
@@ -208,7 +230,7 @@ export default function BarReportForm() {
 
       <div style={{ maxWidth: '500px', margin: '2rem auto' }}>
         <h3 className="font-bold mb-2">Pie Chart: Sales Breakdown by Category</h3>
-        <Pie ref={chart2Ref} data={pieCategoryData} />
+        <Pie ref={chart2Ref} data={pieCategoryData} options={pieCategoryOptions} />
       </div>
 
       <button type="submit" className="bg-green-600 text-white px-6 py-2 mt-6">Submit Report</button>
