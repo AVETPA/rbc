@@ -1,193 +1,159 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient.js";
+import { useSearchParams } from "react-router-dom";
 
+export default function ProductEditor() {
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [filteredSubcategories, setFilteredSubcategories] = useState([]);
 
-
-export default function ProductDetailModal({ productId, productName, open, onClose }) {
-  const [variations, setVariations] = useState([]);
-  const [sizes, setSizes] = useState([]);
-  const [newVariation, setNewVariation] = useState({
-    size_id: "",
-    size_label: "",
+  const [formData, setFormData] = useState({
+    id: null,
+    name: "",
+    category_id: "",
+    category_name: "",
+    subcategory_id: "",
+    subcategory_name: "",
     cost_price: "",
-    retail_price: "",
-    sku: "",
-    active: true
+    size: "",
   });
 
+  const [searchParams] = useSearchParams();
+  const productId = searchParams.get("id");
+
   useEffect(() => {
-    if (open) {
-      fetchVariations();
-      fetchSizes();
+    const fetchInitial = async () => {
+      const [{ data: cats }, { data: subs }, { data: product }] = await Promise.all([
+        supabase.from("categories").select("*").order("name"),
+        supabase.from("subcategories").select("*").order("name"),
+        productId
+          ? supabase.from("products").select("*").eq("id", productId).single()
+          : Promise.resolve({ data: null }),
+      ]);
+
+      setCategories(cats || []);
+      setSubcategories(subs || []);
+
+      if (product) {
+        setFormData(product);
+        setFilteredSubcategories(
+          subs.filter((s) => s.category_id === product.category_id)
+        );
+      }
+    };
+
+    fetchInitial();
+  }, [productId]);
+
+  const handleChange = (field, value) => {
+    let updates = { [field]: value };
+
+    if (field === "category_id") {
+      const selectedCategory = categories.find((c) => c.id === value);
+      updates.category_name = selectedCategory?.name || "";
+      updates.subcategory_id = "";
+      updates.subcategory_name = "";
+      setFilteredSubcategories(
+        subcategories.filter((s) => s.category_id === value)
+      );
     }
-  }, [open]);
 
-  const fetchVariations = async () => {
-    const { data, error } = await supabase
-      .from("product_variations")
-      .select("*")
-      .eq("product_id", productId);
-    if (!error) setVariations(data);
+    if (field === "subcategory_id") {
+      const selectedSub = subcategories.find((s) => s.id === value);
+      updates.subcategory_name = selectedSub?.name || "";
+    }
+
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
-  const fetchSizes = async () => {
-    const { data } = await supabase.from("sizes").select("id, label");
-    setSizes(data || []);
+  const handleSave = async () => {
+    const fieldsToSave = {
+      name: formData.name,
+      category_id: formData.category_id,
+      subcategory_id: formData.subcategory_id,
+      category_name: formData.category_name,
+      subcategory_name: formData.subcategory_name,
+      cost_price: Number(formData.cost_price),
+      size: Number(formData.size),
+    };
+
+    let result;
+    if (formData.id) {
+      result = await supabase.from("products").update(fieldsToSave).eq("id", formData.id);
+    } else {
+      result = await supabase.from("products").insert(fieldsToSave);
+    }
+
+    if (result.error) {
+      alert("Failed to save: " + result.error.message);
+    } else {
+      alert("Product saved successfully.");
+    }
   };
 
-  const handleInputChange = (index, field, value) => {
-    const updated = [...variations];
-    updated[index][field] = field === "active" ? value : value;
-    setVariations(updated);
-  };
+  return (
+    <div className="max-w-xl mx-auto p-6 bg-white shadow rounded">
+      <h2 className="text-xl font-bold mb-4">Edit Product</h2>
 
-  const handleSaveChange = async (index) => {
-    const variation = variations[index];
-    await supabase
-      .from("product_variations")
-      .update({
-        size_id: variation.size_id,
-        size_label: variation.size_label,
-        cost_price: variation.cost_price,
-        retail_price: variation.retail_price,
-        sku: variation.sku,
-        active: variation.active
-      })
-      .eq("id", variation.id);
-    fetchVariations();
-  };
+      <label className="block mb-2 font-medium">Name</label>
+      <input
+        type="text"
+        className="border p-2 rounded w-full mb-4"
+        value={formData.name}
+        onChange={(e) => handleChange("name", e.target.value)}
+      />
 
-  const handleAddVariation = async () => {
-    await supabase.from("product_variations").insert({
-      product_id: productId,
-      ...newVariation
-    });
-    setNewVariation({ size_id: "", size_label: "", cost_price: "", retail_price: "", sku: "", active: true });
-    fetchVariations();
-  };
-
- return (
-  <div className="p-6 w-full max-w-3xl mx-auto bg-white border rounded">
-    <h2 className="text-xl font-bold mb-4">Manage Variations for {productName}</h2>
-    <table className="w-full text-left border mb-4">
-      <thead>
-        <tr className="bg-gray-200">
-          <th className="p-2">Size Label</th>
-          <th className="p-2">Cost Price</th>
-          <th className="p-2">Retail Price</th>
-          <th className="p-2">SKU</th>
-          <th className="p-2">Active</th>
-          <th className="p-2">Save</th>
-        </tr>
-      </thead>
-      <tbody>
-        {variations.map((v, index) => (
-          <tr key={v.id} className="border-t">
-            <td className="p-2">
-              <input
-                value={v.size_label || ""}
-                onChange={(e) => handleInputChange(index, "size_label", e.target.value)}
-                className="w-full border p-1 rounded"
-              />
-            </td>
-            <td className="p-2">
-              <input
-                type="number"
-                value={v.cost_price || ""}
-                onChange={(e) => handleInputChange(index, "cost_price", e.target.value)}
-                className="w-full border p-1 rounded"
-              />
-            </td>
-            <td className="p-2">
-              <input
-                type="number"
-                value={v.retail_price || ""}
-                onChange={(e) => handleInputChange(index, "retail_price", e.target.value)}
-                className="w-full border p-1 rounded"
-              />
-            </td>
-            <td className="p-2">
-              <input
-                value={v.sku || ""}
-                onChange={(e) => handleInputChange(index, "sku", e.target.value)}
-                className="w-full border p-1 rounded"
-              />
-            </td>
-            <td className="p-2 text-center">
-              <input
-                type="checkbox"
-                checked={v.active}
-                onChange={(e) => handleInputChange(index, "active", e.target.checked)}
-              />
-            </td>
-            <td className="p-2">
-              <button
-                onClick={() => handleSaveChange(index)}
-                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-              >
-                Save
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-
-    <div className="border-t pt-4">
-      <h3 className="font-semibold mb-2">Add New Variation</h3>
-      <div className="grid grid-cols-6 gap-2 mb-4">
-        <select
-          className="border p-2 rounded col-span-2"
-          value={newVariation.size_id}
-          onChange={(e) => setNewVariation({ ...newVariation, size_id: e.target.value })}
-        >
-          <option value="">Select Size</option>
-          {sizes.map((s) => (
-            <option key={s.id} value={s.id}>{s.label}</option>
-          ))}
-        </select>
-        <input
-          placeholder="Label"
-          value={newVariation.size_label}
-          onChange={(e) => setNewVariation({ ...newVariation, size_label: e.target.value })}
-          className="border p-2 rounded"
-        />
-        <input
-          type="number"
-          placeholder="Cost"
-          value={newVariation.cost_price}
-          onChange={(e) => setNewVariation({ ...newVariation, cost_price: e.target.value })}
-          className="border p-2 rounded"
-        />
-        <input
-          type="number"
-          placeholder="Retail"
-          value={newVariation.retail_price}
-          onChange={(e) => setNewVariation({ ...newVariation, retail_price: e.target.value })}
-          className="border p-2 rounded"
-        />
-        <input
-          placeholder="SKU"
-          value={newVariation.sku}
-          onChange={(e) => setNewVariation({ ...newVariation, sku: e.target.value })}
-          className="border p-2 rounded"
-        />
-      </div>
-      <div className="flex items-center gap-2 mb-4">
-        <input
-          type="checkbox"
-          checked={newVariation.active}
-          onChange={(e) => setNewVariation({ ...newVariation, active: e.target.checked })}
-        />
-        <span>Active</span>
-      </div>
-      <button
-        onClick={handleAddVariation}
-        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+      <label className="block mb-2 font-medium">Category</label>
+      <select
+        className="border p-2 rounded w-full mb-4"
+        value={formData.category_id}
+        onChange={(e) => handleChange("category_id", e.target.value)}
       >
-        + Add Variation
+        <option value="">Select a category</option>
+        {categories.map((cat) => (
+          <option key={cat.id} value={cat.id}>
+            {cat.name}
+          </option>
+        ))}
+      </select>
+
+      <label className="block mb-2 font-medium">Subcategory</label>
+      <select
+        className="border p-2 rounded w-full mb-4"
+        value={formData.subcategory_id}
+        onChange={(e) => handleChange("subcategory_id", e.target.value)}
+        disabled={!formData.category_id}
+      >
+        <option value="">Select a subcategory</option>
+        {filteredSubcategories.map((sub) => (
+          <option key={sub.id} value={sub.id}>
+            {sub.name}
+          </option>
+        ))}
+      </select>
+
+      <label className="block mb-2 font-medium">Cost Price ($)</label>
+      <input
+        type="number"
+        className="border p-2 rounded w-full mb-4"
+        value={formData.cost_price}
+        onChange={(e) => handleChange("cost_price", e.target.value)}
+      />
+
+      <label className="block mb-2 font-medium">Carton Size (units)</label>
+      <input
+        type="number"
+        className="border p-2 rounded w-full mb-4"
+        value={formData.size}
+        onChange={(e) => handleChange("size", e.target.value)}
+      />
+
+      <button
+        onClick={handleSave}
+        className="bg-blue-600 text-white px-4 py-2 rounded"
+      >
+        Save Product
       </button>
     </div>
-  </div>
-);
+  );
 }

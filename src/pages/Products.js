@@ -9,33 +9,21 @@ export default function Products() {
   useEffect(() => {
     const fetchProducts = async () => {
       const { data, error } = await supabase
-  .from("products")
-  .select(`
-    id,
-    name,
-    size,
-    cost_price,
-    category_id,
-    subcategory_id,
-    category:category_id ( name ),
-    subcategory:subcategory_id ( name )
-  `)
-  .order("name");
+        .from("products")
+        .select(`
+          id,
+          name,
+          size,
+          cost_price,
+          category_name,
+          subcategory_name
+        `)
+        .order("name");
 
-   console.log("Raw product data:", data);
       if (error) {
-        console.error("❌ Error fetching products:", error);
+        console.error("Error fetching products:", error);
       } else {
-        const flattened = data.map((p) => ({
-          id: p.id,
-          name: p.name,
-          size: p.size,
-          cost_price: p.cost_price,
-          category: p.category?.name || "—",
-          subcategory: p.subcategory?.name || "—"
-        }));
-       
-        setProducts(flattened);
+        setProducts(data || []);
       }
 
       setLoading(false);
@@ -66,9 +54,9 @@ export default function Products() {
             {products.map((product) => (
               <tr key={product.id} className="border-b">
                 <td className="py-2 px-4">{product.name}</td>
-                <td className="py-2 px-4">{product.category}</td>
-                <td className="py-2 px-4">{product.subcategory}</td>
-                <td className="py-2 px-4">{product.size}</td>
+                <td className="py-2 px-4">{product.category_name || "—"}</td>
+                <td className="py-2 px-4">{product.subcategory_name || "—"}</td>
+                <td className="py-2 px-4">{product.size || "—"}</td>
                 <td className="py-2 px-4">
                   ${product.cost_price?.toFixed(2) || "0.00"}
                 </td>
