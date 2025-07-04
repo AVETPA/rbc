@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Pie } from 'react-chartjs-2';
 import 'chart.js/auto';
-import { supabase } from '../utils/supabase.js';
+import { supabase } from "../supabaseClient.js";
 import jsPDF from 'jspdf';
 
 const initialEvent = { event_type: '', sales: '', cost: '' };
